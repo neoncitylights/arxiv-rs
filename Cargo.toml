@@ -1,5 +1,5 @@
 [package]
-name = "rust-template"
+name = "arxiv"
 version = "0.1.0"
 authors = [
 	"Samantha Nguyen, <contact@samanthanguyen.me>",
@@ -20,3 +20,7 @@ exclude = [
 	"package.json",
 	"package-lock.json",
 ]
+
+[dependencies.time]
+version = "0.3.20"
+features = ["macros", "parsing"]
