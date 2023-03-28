@@ -1,6 +1,7 @@
 # arXiv
 
 [![License](https://img.shields.io/badge/License-MIT%20%26%20Apache%202.0-blue)](#license)
+[![docs.rs](https://img.shields.io/docsrs/arxiv/latest)](https://docs.rs/arxiv/)
 [![CI](https://github.com/acmuta-research/arxiv-rs/actions/workflows/main.yml/badge.svg)](https://github.com/acmuta-research/arxiv-rs/actions/workflows/main.yml)
 [![Security audit](https://github.com/acmuta-research/arxiv-rs/actions/workflows/security-audit.yml/badge.svg)](https://github.com/acmuta-research/arxiv-rs/actions/workflows/security-audit.yml)
 [![codecov](https://codecov.io/gh/acmuta-research/arxiv-rs/branch/main/graph/badge.svg?token=6ZSIWAQTHU)](https://codecov.io/gh/acmuta-research/arxiv-rs)
