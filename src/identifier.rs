@@ -303,9 +303,6 @@ mod tests {
 
 	#[test]
 	fn parse_arxiv_invalid_id() {
-		assert_eq!(
-			ArxivId::try_latest(2007, 11, String::new()),
-			Err(ArxivIdError::InvalidId)
-		)
+		assert_eq!(ArxivId::try_latest(2007, 11, String::new()), Err(ArxivIdError::InvalidId))
 	}
 }

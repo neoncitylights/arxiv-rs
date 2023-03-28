@@ -1,10 +1,10 @@
+use crate::{ArxivId, ArxivIdError};
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
-use time::{Date, Month};
-use time::macros::format_description;
 use time::error::Parse as TimeParseError;
-use crate::{ArxivId, ArxivIdError};
+use time::macros::format_description;
+use time::{Date, Month};
 
 /// Convenient type alias for a [`Result`] holding either an [`ArxivStamp`] or [`ArxivStampError`]
 pub type ArxivStampResult = Result<ArxivStamp, ArxivStampError>;
@@ -69,13 +69,19 @@ impl ArxivStamp {
 	/// ```
 	#[inline]
 	pub fn new(id: ArxivId, category: String, submitted: Date) -> Self {
-		Self { id, category, submitted }
+		Self {
+			id,
+			category,
+			submitted,
+		}
 	}
 }
 
 impl Display for ArxivStamp {
 	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-		write!(f, "{} [{}] {} {} {}",
+		write!(
+			f,
+			"{} [{}] {} {} {}",
 			self.id,
 			self.category,
 			self.submitted.day(),
@@ -89,9 +95,7 @@ impl FromStr for ArxivStamp {
 	type Err = ArxivStampError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let parts = s
-			.splitn(2, ArxivStamp::TOKEN_SPACE)
-			.collect::<Vec<&str>>();
+		let parts = s.splitn(2, ArxivStamp::TOKEN_SPACE).collect::<Vec<&str>>();
 
 		if parts.len() == 1 {
 			return Err(ArxivStampError::NotEnoughComponents);
@@ -120,6 +124,8 @@ impl FromStr for ArxivStamp {
 		}
 
 		// validate the category and date components
+		// converting this to category? will cause the value to move,
+		#[allow(clippy::question_mark)]
 		if let Err(e) = category {
 			return Err(e);
 		}
@@ -129,11 +135,7 @@ impl FromStr for ArxivStamp {
 		}
 
 		// if we got this far, we can safely unwrap the results
-		Ok(Self::new(
-			arxiv_id.unwrap(),
-			category.unwrap(),
-			date.unwrap()
-		))
+		Ok(Self::new(arxiv_id.unwrap(), category.unwrap(), date.unwrap()))
 	}
 }
 
@@ -149,8 +151,8 @@ fn parse_category(s: &str) -> Result<String, ArxivStampError> {
 
 fn brackets_match(s: &str) -> bool {
 	s.starts_with('[') && s.ends_with(']')
-	|| s.starts_with('(') && s.ends_with(')')
-	|| s.starts_with('{') && s.ends_with('}')
+		|| s.starts_with('(') && s.ends_with(')')
+		|| s.starts_with('{') && s.ends_with('}')
 }
 
 fn month_as_abbr<'a>(month: Month) -> &'a str {
@@ -184,17 +186,17 @@ fn parse_date(date_str: &str) -> DateParseResult {
 
 #[cfg(test)]
 mod tests {
-	use std::str::FromStr;
-	use time::Date;
-	use time::error::ParseFromDescription;
 	use super::*;
+	use std::str::FromStr;
+	use time::error::ParseFromDescription;
+	use time::Date;
 
 	#[test]
 	fn display_stamp() {
 		let stamp = ArxivStamp::new(
 			ArxivId::from_str("arXiv:2011.00001").unwrap(),
 			String::from("cs.LG"),
-			Date::from_calendar_date(2011, Month::January, 1).unwrap()
+			Date::from_calendar_date(2011, Month::January, 1).unwrap(),
 		);
 		assert_eq!(stamp.to_string(), "arXiv:2011.00001 [cs.LG] 1 Jan 2011");
 	}
@@ -256,37 +258,26 @@ mod tests {
 		// hack to get a ComponentRange error
 		let date = parse_date("32 Jan 2000").unwrap_err();
 
-		assert_eq!(
-			parsed,
-			Err(ArxivStampError::InvalidDate(date))
-		);
+		assert_eq!(parsed, Err(ArxivStampError::InvalidDate(date)));
 	}
 
 	#[test]
 	fn parse_stamp_invalid_date_month() {
 		let stamp = "arXiv:2001.00001 [cs.LG] 1 Zan 2000";
 		let parsed = ArxivStamp::from_str(stamp);
-		assert_eq!(
-			parsed,
-			Err(invalid_date_component("month"))
-		);
+		assert_eq!(parsed, Err(invalid_date_component("month")));
 	}
 
 	#[test]
 	fn parse_stamp_invalid_date_year() {
 		let stamp = "arXiv:2001.00001 [cs.LG] 1 Jan 200";
 		let parsed = ArxivStamp::from_str(stamp);
-		assert_eq!(
-			parsed,
-			Err(invalid_date_component("year"))
-		);
+		assert_eq!(parsed, Err(invalid_date_component("year")));
 	}
 
 	fn invalid_date_component(component: &'static str) -> ArxivStampError {
-		ArxivStampError::InvalidDate(
-			TimeParseError::ParseFromDescription(
-				ParseFromDescription::InvalidComponent(component)
-			)
-		)
+		ArxivStampError::InvalidDate(TimeParseError::ParseFromDescription(
+			ParseFromDescription::InvalidComponent(component),
+		))
 	}
 }
