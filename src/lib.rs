@@ -57,13 +57,20 @@ pub struct ArxivId {
 impl ArxivId {
 	pub const MIN_YEAR: u16 = 2007u16;
 	pub const MAX_YEAR: u16 = 2099u16;
+	pub const MIN_MONTH: u8 = 1u8;
+	pub const MAX_MONTH: u8 = 12u8;
 	pub(crate) const TOKEN_COLON: char = ':';
 	pub(crate) const TOKEN_DOT: char = '.';
 	pub(crate) const TOKEN_VERSION: char = 'v';
 
 	#[inline]
 	pub fn new_raw(year: u16, month: u8, id: String, version: Option<u8>) -> Self {
-		Self {year, month, id, version}
+		Self {
+			year,
+			month,
+			id,
+			version,
+		}
 	}
 
 	#[inline]
@@ -71,17 +78,12 @@ impl ArxivId {
 		Self::new_raw(year, month, id, None)
 	}
 
-	pub fn try_new(
-		year: u16,
-		month: u8,
-		id: String,
-		version: Option<u8>
-	) -> ArxivIdResult {
-		if year < Self::MIN_YEAR || year > Self::MAX_YEAR {
+	pub fn try_new(year: u16, month: u8, id: String, version: Option<u8>) -> ArxivIdResult {
+		if !(Self::MIN_YEAR..=Self::MAX_YEAR).contains(&year) {
 			return Err(ArxivIdError::InvalidYear);
 		}
 
-		if !(month >= 1 && month <= 12) {
+		if !(1..=12).contains(&month) {
 			return Err(ArxivIdError::InvalidMonth);
 		}
 
@@ -142,20 +144,15 @@ impl FromStr for ArxivId {
 		}
 
 		// validate and compose the final Arxiv struct
-		let year = u16::from_str_radix(&inner_parts[0][0..2], 10);
-		let month = u8::from_str_radix(&inner_parts[0][2..4], 10);
+		let year = inner_parts[0][0..2].parse::<u16>();
+		let month = inner_parts[0][2..4].parse::<u8>();
 		if year.is_err() || month.is_err() {
 			return Err(ArxivIdError::Syntax);
 		}
 
 		let (id, version) = parse_numbervv(inner_parts[1]);
 
-		ArxivId::try_new(
-			year.unwrap() + 2000,
-			month.unwrap(),
-			id,
-			version
-		)
+		ArxivId::try_new(year.unwrap() + 2000, month.unwrap(), id, version)
 	}
 }
 
@@ -170,13 +167,12 @@ fn parse_numbervv(s: &str) -> (String, Option<u8>) {
 	let mut version: Option<u8> = None;
 
 	if parts.len() == 1 {
-		return (number, version)
+		return (number, version);
 	}
 
-	let parsed_version = u8::from_str_radix(parts[1], 10);
-	match parsed_version {
-		Ok(t) => { version = Some(t); },
-		Err(_) => (),
+	let parsed_version = parts[1].parse::<u8>();
+	if let Ok(t) = parsed_version {
+		version = Some(t);
 	}
 
 	(number, version)
@@ -188,10 +184,7 @@ mod tests {
 
 	#[test]
 	fn parse_arxiv_empty() {
-		assert_eq!(
-			ArxivId::from_str(""),
-			Err(ArxivIdError::Syntax)
-		);
+		assert_eq!(ArxivId::from_str(""), Err(ArxivIdError::Syntax));
 	}
 
 	#[test]
