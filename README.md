@@ -10,8 +10,36 @@ A Rust library for parsing `arXiv` identifiers and references.
 
 ## Install
 
+Run the following command in the terminal:
+
 ```shell
 cargo add arxiv
+```
+
+Or, add this to `Cargo.toml`:
+
+```shell
+[dependencies]
+arxiv = "0.1"
+```
+
+## Usage
+
+```rust
+use std::str::FromStr;
+use arxiv::{ArxivId, ArxivStamp};
+
+// Parse an arXiv identifier
+let id = ArxivId::from_str("arXiv:9912.12345v2").unwrap();
+assert_eq!(id.month, 12);
+assert_eq!(id.year, 2099);
+assert_eq!(id.number, "12345");
+assert_eq!(id.version, Some(2));
+
+// Parse an arXiv stamp
+let stamp = ArxivStamp::from_str("arXiv:0706.0001v1 [q-bio.CB] 1 Jun 2007").unwrap();
+assert_eq!(stamp.category, "q-bio.CB");
+assert_eq!(stamp.submitted.year(), 2007);
 ```
 
 ## License

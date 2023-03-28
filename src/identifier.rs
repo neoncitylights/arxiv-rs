@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
 
 /// Convenient type alias for a [`Result`] holding either an [`ArxivId`] or [`ArxivIdError`]
@@ -71,11 +71,11 @@ impl ArxivId {
 	/// let id = ArxivId::new_raw(2011, 1, String::from("00001"), Some(1));
 	/// ```
 	#[inline]
-	pub fn new_raw(year: u16, month: u8, id: String, version: Option<u8>) -> Self {
+	pub fn new_raw(year: u16, month: u8, number: String, version: Option<u8>) -> Self {
 		Self {
 			year,
 			month,
-			number: id,
+			number,
 			version,
 		}
 	}
@@ -105,7 +105,7 @@ impl ArxivId {
 	///
 	/// let id = ArxivId::try_new(2011, 1, String::from("00001"), Some(1));
 	/// ```
-	pub fn try_new(year: u16, month: u8, id: String, version: Option<u8>) -> ArxivIdResult {
+	pub fn try_new(year: u16, month: u8, number: String, version: Option<u8>) -> ArxivIdResult {
 		if !(Self::MIN_YEAR..=Self::MAX_YEAR).contains(&year) {
 			return Err(ArxivIdError::InvalidYear);
 		}
@@ -114,11 +114,11 @@ impl ArxivId {
 			return Err(ArxivIdError::InvalidMonth);
 		}
 
-		if id.len() < 4 || id.len() > 5 {
+		if number.len() < 4 || number.len() > 5 {
 			return Err(ArxivIdError::InvalidId);
 		}
 
-		Ok(Self::new_raw(year, month, id, version))
+		Ok(Self::new_raw(year, month, number, version))
 	}
 
 	/// This allows manually creating an [`ArxivId`] from the given components without a version
@@ -132,8 +132,8 @@ impl ArxivId {
 	/// let id = ArxivId::try_latest(2011, 1, String::from("00001"));
 	/// ```
 	#[inline]
-	pub fn try_latest(year: u16, month: u8, id: String) -> ArxivIdResult {
-		Self::try_new(year, month, id, None)
+	pub fn try_latest(year: u16, month: u8, number: String) -> ArxivIdResult {
+		Self::try_new(year, month, number, None)
 	}
 
 	/// Whether or not the identifier refers to the most recent version of the arXiv article
@@ -174,7 +174,7 @@ impl ArxivId {
 }
 
 impl Display for ArxivId {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
 		let mut binding = self.year.to_string();
 		let (_, half_year) = binding.as_mut_str().split_at(2);
 
@@ -208,9 +208,9 @@ impl FromStr for ArxivId {
 			return Err(ArxivIdError::Syntax);
 		}
 
-		let (id, version) = parse_numbervv(inner_parts[1]);
+		let (number, version) = parse_numbervv(inner_parts[1]);
 
-		ArxivId::try_new(year.unwrap() + 2000, month.unwrap(), id, version)
+		ArxivId::try_new(year.unwrap() + 2000, month.unwrap(), number, version)
 	}
 }
 

@@ -11,7 +11,7 @@ pub type ArxivStampResult = Result<ArxivStamp, ArxivStampError>;
 type CategoryResult = Result<String, ArxivStampError>;
 type DateParseResult = Result<Date, TimeParseError>;
 
-/// An error that can occur when parsing and validating arXiv stamp
+/// An error that can occur when parsing and validating arXiv stamps
 ///
 /// # Examples
 /// ```
@@ -42,7 +42,7 @@ impl Display for ArxivStampError {
 }
 
 /// A stamp that is added onto the side of PDF version of arXiv articles
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArxivStamp {
 	pub id: ArxivId,
 	pub category: String,
@@ -139,9 +139,7 @@ impl FromStr for ArxivStamp {
 	}
 }
 
-/// write a function that parses a value like "[<text>]" where <text> can be anything
-/// and returns <text> as a string
-fn parse_category(s: &str) -> Result<String, ArxivStampError> {
+fn parse_category(s: &str) -> CategoryResult {
 	if brackets_match(s) {
 		Ok(s[1..s.len() - 1].to_string())
 	} else {
