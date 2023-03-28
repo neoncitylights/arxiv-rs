@@ -5,6 +5,9 @@ authors = [
 	"Samantha Nguyen, <contact@samanthanguyen.me>",
 ]
 description = "Rust library to parse arXiv identifiers and references"
+homepage = "https://github.com/acmuta-research/arxiv-rs"
+repository = "https://github.com/acmuta-research/arxiv-rs"
+documentation = "https://docs.rs/arxiv"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 edition = "2021"
