@@ -71,7 +71,7 @@ impl ArxivId {
 	/// let id = ArxivId::new_raw(2011, 1, String::from("00001"), Some(1));
 	/// ```
 	#[inline]
-	pub fn new_raw(year: u16, month: u8, number: String, version: Option<u8>) -> Self {
+	pub const fn new_raw(year: u16, month: u8, number: String, version: Option<u8>) -> Self {
 		Self {
 			year,
 			month,
@@ -91,7 +91,7 @@ impl ArxivId {
 	/// let id = ArxivId::new_latest(2011, 1, String::from("00001"));
 	/// ```
 	#[inline]
-	pub fn new_latest(year: u16, month: u8, id: String) -> Self {
+	pub const fn new_latest(year: u16, month: u8, id: String) -> Self {
 		Self::new_raw(year, month, id, None)
 	}
 
@@ -138,7 +138,7 @@ impl ArxivId {
 
 	/// Whether or not the identifier refers to the most recent version of the arXiv article
 	#[inline]
-	pub fn is_latest(&self) -> bool {
+	pub const fn is_latest(&self) -> bool {
 		self.version.is_none()
 	}
 

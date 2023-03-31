@@ -68,7 +68,7 @@ impl ArxivStamp {
 	/// );
 	/// ```
 	#[inline]
-	pub fn new(id: ArxivId, category: String, submitted: Date) -> Self {
+	pub const fn new(id: ArxivId, category: String, submitted: Date) -> Self {
 		Self {
 			id,
 			category,
@@ -153,7 +153,7 @@ fn brackets_match(s: &str) -> bool {
 		|| s.starts_with('{') && s.ends_with('}')
 }
 
-fn month_as_abbr<'a>(month: Month) -> &'a str {
+const fn month_as_abbr<'a>(month: Month) -> &'a str {
 	match month {
 		Month::January => "Jan",
 		Month::February => "Feb",
