@@ -10,7 +10,7 @@ pub type ArxivIdResult = Result<ArxivId, ArxivIdError>;
 pub enum ArxivIdError {
 	/// A generic parsing syntax error
 	Syntax,
-	/// An ivalid month outside of the inclusive [1, 12] interval
+	/// An invalid month outside of the inclusive [1, 12] interval
 	InvalidMonth,
 	/// An invalid year outside of the inclusive [2007, 2099] interval
 	InvalidYear,
@@ -57,6 +57,8 @@ impl ArxivId {
 	pub const MAX_YEAR: u16 = 2099u16;
 	pub const MIN_MONTH: u8 = 1u8;
 	pub const MAX_MONTH: u8 = 12u8;
+	pub const MIN_NUM_DIGITS: usize = 4usize;
+	pub const MAX_NUM_DIGITS: usize = 5usize;
 	pub(crate) const TOKEN_COLON: char = ':';
 	pub(crate) const TOKEN_DOT: char = '.';
 	pub(crate) const TOKEN_VERSION: char = 'v';
@@ -110,11 +112,11 @@ impl ArxivId {
 			return Err(ArxivIdError::InvalidYear);
 		}
 
-		if !(1..=12).contains(&month) {
+		if !(Self::MIN_MONTH..=Self::MAX_MONTH).contains(&month) {
 			return Err(ArxivIdError::InvalidMonth);
 		}
 
-		if number.len() < 4 || number.len() > 5 {
+		if !(Self::MIN_NUM_DIGITS..=Self::MAX_NUM_DIGITS).contains(&number.len()) {
 			return Err(ArxivIdError::InvalidId);
 		}
 
