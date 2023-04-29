@@ -6,7 +6,7 @@
 [![Security audit](https://github.com/acmuta-research/arxiv-rs/actions/workflows/security-audit.yml/badge.svg)](https://github.com/acmuta-research/arxiv-rs/actions/workflows/security-audit.yml)
 [![codecov](https://codecov.io/gh/acmuta-research/arxiv-rs/branch/main/graph/badge.svg?token=6ZSIWAQTHU)](https://codecov.io/gh/acmuta-research/arxiv-rs)
 
-A Rust library for parsing `arXiv` identifiers and references.
+A Rust library for parsing `arXiv` categories, identifiers and references.
 
 ## Install
 
@@ -27,19 +27,25 @@ arxiv = "0.1"
 
 ```rust
 use std::str::FromStr;
-use arxiv::{ArxivId, ArxivStamp};
+use arxiv::*;
 
 // Parse an arXiv identifier
 let id = ArxivId::from_str("arXiv:9912.12345v2").unwrap();
-assert_eq!(id.month, 12);
-assert_eq!(id.year, 2099);
-assert_eq!(id.number, "12345");
-assert_eq!(id.version, Some(2));
+assert_eq!(id.month(), 12);
+assert_eq!(id.year(), 2099);
+assert_eq!(id.number(), "12345");
+assert_eq!(id.version(), Some(2));
+
+// Parse an arXiv category
+let category = ArxivCategoryId::from_str("astro-ph.HE").unwrap();
+assert_eq!(category.group(), ArxivGroup::Physics);
+assert_eq!(category.archive(), ArxivArchive::AstroPh);
+assert_eq!(category.subject(), String::from("HE"));
 
 // Parse an arXiv stamp
 let stamp = ArxivStamp::from_str("arXiv:0706.0001v1 [q-bio.CB] 1 Jun 2007").unwrap();
-assert_eq!(stamp.category, "q-bio.CB");
-assert_eq!(stamp.submitted.year(), 2007);
+assert_eq!(stamp.category(), Some(&ArxivCategoryId::try_new(ArxivArchive::QBio, "CB").unwrap()));
+assert_eq!(stamp.submitted().year(), 2007);
 ```
 
 ## License
