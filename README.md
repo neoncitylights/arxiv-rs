@@ -20,7 +20,7 @@ Or, add this to `Cargo.toml`:
 
 ```shell
 [dependencies]
-arxiv = "0.1"
+arxiv = "0.2"
 ```
 
 ## Usage
