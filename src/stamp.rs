@@ -102,7 +102,7 @@ impl Display for ArxivStamp {
 	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
 		// A stamp string is *at least* 25 characters long:
 		// - 16: longest possible arXiv identifier
-		// - 2: string length of a zero-padded day
+		// - 2: string length of a day
 		// - 3: string length of an abbreviated month
 		// - 4: string length of a 4-digit year
 		let mut partial_stamp_str = String::with_capacity(16usize);
