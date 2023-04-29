@@ -1,4 +1,4 @@
-use crate::{ArxivId, ArxivIdError};
+use crate::{ArxivCategoryId, ArxivId, ArxivIdError};
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
@@ -8,7 +8,6 @@ use time::{Date, Month};
 
 /// Convenient type alias for a [`Result`] holding either an [`ArxivStamp`] or [`ArxivStampError`]
 pub type ArxivStampResult = Result<ArxivStamp, ArxivStampError>;
-type CategoryResult = Result<String, ArxivStampError>;
 type DateParseResult = Result<Date, TimeParseError>;
 
 /// An error that can occur when parsing and validating arXiv stamps
@@ -44,46 +43,86 @@ impl Display for ArxivStampError {
 /// A stamp that is added onto the side of PDF version of arXiv articles
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArxivStamp {
-	pub id: ArxivId,
-	pub category: String,
-	pub submitted: Date,
+	id: ArxivId,
+	category: Option<ArxivCategoryId>,
+	submitted: Date,
 }
 
 impl ArxivStamp {
 	pub(crate) const TOKEN_SPACE: char = ' ';
 
-	/// Manually create a new [`ArxivStamp`] from the given components. This is useful
-	/// if you want to dynamically create a stamp from user input; otherwise, it is
-	/// recommended to use [`ArxivStamp::from_str()`] instead since it can be quite verbose.
-	///
+	/// Manually create a new [`ArxivStamp`] from the given components.
+
 	/// # Examples
 	/// ```
+	/// use arxiv::{ArxivArchive, ArxivCategoryId, ArxivId, ArxivStamp};
 	/// use time::{Date, Month};
-	/// use arxiv::{ArxivId, ArxivStamp};
 	///
 	/// let stamp = ArxivStamp::new(
 	///    ArxivId::try_latest(2011, 1, String::from("00001")).unwrap(),
-	///    String::from("cs.LG"),
+	///    Some(ArxivCategoryId::try_new(ArxivArchive::Cs, "LG").unwrap()),
 	///    Date::from_calendar_date(2011, Month::January, 1).unwrap()
 	/// );
 	/// ```
 	#[inline]
-	pub const fn new(id: ArxivId, category: String, submitted: Date) -> Self {
+	pub const fn new(id: ArxivId, category: Option<ArxivCategoryId>, submitted: Date) -> Self {
 		Self {
 			id,
 			category,
 			submitted,
 		}
 	}
+
+	/// The unique arXiv identifier of the stamp
+	#[must_use]
+	#[inline]
+	pub const fn id(&self) -> &ArxivId {
+		&self.id
+	}
+
+	/// The category of the stamp
+	#[must_use]
+	#[inline]
+	pub const fn category(&self) -> Option<&ArxivCategoryId> {
+		match &self.category {
+			Some(c) => Some(c),
+			None => None,
+		}
+	}
+
+	/// The submitted date of the given publication for the stamp
+	#[must_use]
+	#[inline]
+	pub const fn submitted(&self) -> Date {
+		self.submitted
+	}
 }
 
 impl Display for ArxivStamp {
 	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+		// A stamp string is *at least* 25 characters long:
+		// - 16: longest possible arXiv identifier
+		// - 2: string length of a day
+		// - 3: string length of an abbreviated month
+		// - 4: string length of a 4-digit year
+		let mut partial_stamp_str = String::with_capacity(16usize);
+		partial_stamp_str.push_str(&self.id.to_string());
+		match &self.category {
+			Some(c) => {
+				// This is the longest possible length of a category string,
+				// such as "cond-mat.quant-gas"
+				partial_stamp_str.reserve(18usize);
+				partial_stamp_str.push_str(" [");
+				partial_stamp_str.push_str(&c.to_string());
+				partial_stamp_str.push(']');
+			}
+			None => (),
+		}
+
 		write!(
 			f,
-			"{} [{}] {} {} {}",
-			self.id,
-			self.category,
+			"{} {} {} {}",
+			partial_stamp_str,
 			self.submitted.day(),
 			month_as_abbr(self.submitted.month()),
 			self.submitted.year()
@@ -109,7 +148,7 @@ impl FromStr for ArxivStamp {
 		// category is opitional, so we need to check if the second part is a category
 		// and decide which index to use to parse each component
 		let part2_is_category = parts[1].starts_with('[');
-		let mut category: CategoryResult = Ok(String::new());
+		let mut category: Option<ArxivCategoryId> = None;
 		let date: DateParseResult;
 
 		if part2_is_category {
@@ -117,17 +156,17 @@ impl FromStr for ArxivStamp {
 				.splitn(2, ArxivStamp::TOKEN_SPACE)
 				.collect::<Vec<&str>>();
 
-			category = parse_category(category_date[0]);
+			let str_in_brackets =
+				parse_brackets(category_date[0]).map_err(|_| ArxivStampError::InvalidCategory)?;
+			let parsed_category = ArxivCategoryId::from_str(&str_in_brackets);
+			if parsed_category.is_err() {
+				return Err(ArxivStampError::InvalidCategory);
+			}
+
+			category = parsed_category.ok();
 			date = parse_date(category_date[1]);
 		} else {
 			date = parse_date(parts[1]);
-		}
-
-		// validate the category and date components
-		// converting this to category? will cause the value to move,
-		#[allow(clippy::question_mark)]
-		if let Err(e) = category {
-			return Err(e);
 		}
 
 		if let Err(e) = date {
@@ -135,22 +174,21 @@ impl FromStr for ArxivStamp {
 		}
 
 		// if we got this far, we can safely unwrap the results
-		Ok(Self::new(arxiv_id.unwrap(), category.unwrap(), date.unwrap()))
+		Ok(Self::new(arxiv_id.unwrap(), category, date.unwrap()))
 	}
 }
 
-fn parse_category(s: &str) -> CategoryResult {
-	if brackets_match(s) {
-		Ok(s[1..s.len() - 1].to_string())
-	} else {
-		Err(ArxivStampError::InvalidCategory)
+pub(super) fn parse_brackets(s: &str) -> Result<String, ()> {
+	match brackets_match(s) {
+		true => Ok(s[1..s.len() - 1].to_string()),
+		false => Err(()),
 	}
 }
 
-fn brackets_match(s: &str) -> bool {
+/// We only care *and* allow for straight brackets,
+/// we don't care for parentheses or curly brackets
+pub(super) fn brackets_match(s: &str) -> bool {
 	s.starts_with('[') && s.ends_with(']')
-		|| s.starts_with('(') && s.ends_with(')')
-		|| s.starts_with('{') && s.ends_with('}')
 }
 
 const fn month_as_abbr<'a>(month: Month) -> &'a str {
@@ -185,6 +223,7 @@ fn parse_date(date_str: &str) -> DateParseResult {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::ArxivArchive;
 	use std::str::FromStr;
 	use time::error::ParseFromDescription;
 	use time::Date;
@@ -193,10 +232,21 @@ mod tests {
 	fn display_stamp() {
 		let stamp = ArxivStamp::new(
 			ArxivId::from_str("arXiv:2011.00001").unwrap(),
-			String::from("cs.LG"),
+			Some(ArxivCategoryId::try_new(crate::ArxivArchive::Cs, "LG").unwrap()),
 			Date::from_calendar_date(2011, Month::January, 1).unwrap(),
 		);
 		assert_eq!(stamp.to_string(), "arXiv:2011.00001 [cs.LG] 1 Jan 2011");
+	}
+
+	#[test]
+	fn display_stamp_without_category() {
+		let stamp = ArxivStamp::new(
+			ArxivId::from_str("arXiv:2011.00001").unwrap(),
+			None,
+			Date::from_calendar_date(2011, Month::January, 1).unwrap(),
+		);
+
+		assert_eq!(stamp.to_string(), "arXiv:2011.00001 1 Jan 2011");
 	}
 
 	#[test]
@@ -207,8 +257,8 @@ mod tests {
 			parsed,
 			Ok(ArxivStamp::new(
 				ArxivId::from_str("arXiv:2001.00001").unwrap(),
-				String::from("cs.LG"),
-				Date::from_calendar_date(2000, Month::January, 1).unwrap()
+				Some(ArxivCategoryId::try_new(ArxivArchive::Cs, "LG").unwrap()),
+				Date::from_calendar_date(2000, Month::January, 1).unwrap(),
 			))
 		);
 	}
@@ -221,8 +271,8 @@ mod tests {
 			parsed,
 			Ok(ArxivStamp::new(
 				ArxivId::from_str("arXiv:2001.00001").unwrap(),
-				String::new(),
-				Date::from_calendar_date(2000, Month::January, 1).unwrap()
+				None,
+				Date::from_calendar_date(2000, Month::January, 1).unwrap(),
 			))
 		);
 	}
@@ -277,5 +327,20 @@ mod tests {
 		ArxivStampError::InvalidDate(TimeParseError::ParseFromDescription(
 			ParseFromDescription::InvalidComponent(component),
 		))
+	}
+
+	#[test]
+	fn test_parse_brackets() {
+		assert_eq!(Err(()), parse_brackets(""));
+		assert_eq!(Ok(String::new()), parse_brackets("[]"));
+		assert_eq!(Ok(String::from("test")), parse_brackets("[test]"));
+	}
+
+	#[test]
+	fn test_brackets_match() {
+		assert_eq!(false, brackets_match(""));
+		assert_eq!(true, brackets_match("[]"));
+		assert_eq!(false, brackets_match("{}"));
+		assert_eq!(false, brackets_match("()"));
 	}
 }
