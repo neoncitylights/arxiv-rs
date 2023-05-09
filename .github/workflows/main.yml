@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# https://github.com/actions-rs/clippy-check/issues/167#issuecomment-1416772563
-permissions:
-  actions: write
-
 jobs:
   build:
     name: build
@@ -25,20 +21,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.toolchain }}
-        override: true
-        profile: minimal
+      run: |
+        rustup set profile minimal
+        rustup toolchain install ${{ matrix.toolchain }}
+        rustup override set ${{ matrix.toolchain }}
     - name: Cache dependencies
-      uses: Swatinem/rust-cache@v1.4.0
+      uses: Swatinem/rust-cache@v2
       with:
-        sharedKey: full-build-cache
+        shared-key: full-build-cache
     - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --verbose
+      run: cargo build --verbose
 
   test:
     name: test
@@ -49,28 +41,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        profile: minimal
+      run: |
+        rustup set profile minimal
+        rustup toolchain install stable
+        rustup override set stable
+        rustup component add llvm-tools-preview
     - name: Cache dependencies
-      uses: Swatinem/rust-cache@v1.4.0
+      uses: Swatinem/rust-cache@v2
       with:
-        sharedKey: full-build-cache
-    # https://github.com/actions-rs/tarpaulin/issues/15
-    # https://github.com/oscar-project/ungoliant/pull/90
-    # Temporary fix for "Error: Couldn't find a release tarball containing binaries for latest"
-    - name: Run tests
-      uses: actions-rs/tarpaulin@v0.1
-      with:
-        version: 0.22.0
-        args: "--avoid-cfg-tarpaulin"
+        shared-key: full-build-cache
+    - name: Install cargo-llvm-codecov
+      uses: taiki-e/install-action@cargo-llvm-cov
+    - name: Generate code coverage
+      run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
     - name: Upload code coverage
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
+        files: lcov.info
 
   bench:
     name: bench
@@ -81,18 +70,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        profile: minimal
+      run: |
+        rustup set profile minimal
+        rustup toolchain install stable
+        rustup override set stable
     - name: Install Valgrind
       run: sudo apt install -y valgrind
     - name: Run benchmarks
-      uses: actions-rs/cargo@v1
-      with:
-        command: bench
-        args: --no-fail-fast
+      run: cargo bench --no-fail-fast
 
   fmt:
     name: rustfmt-check
@@ -103,21 +88,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-          components: rustfmt
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup override set stable
+          rustup component add rustfmt
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1.4.0
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: full-build-cache
+          shared-key: full-build-cache
       - name: Check formatting/code style
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
   clippy:
     name: clippy-check
@@ -128,21 +109,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-          components: clippy
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup override set stable
+          rustup component add clippy
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1.4.0
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: full-build-cache
+          shared-key: full-build-cache
       - name: clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-features
+        run: cargo clippy --all-features
 
   ci-success:
     name: ci-success
