@@ -31,7 +31,7 @@ jobs:
         override: true
         profile: minimal
     - name: Cache dependencies
-      uses: Swatinem/rust-cache@v1.4.0
+      uses: Swatinem/rust-cache@v2.2.1
       with:
         sharedKey: full-build-cache
     - name: Build
@@ -55,7 +55,7 @@ jobs:
         override: true
         profile: minimal
     - name: Cache dependencies
-      uses: Swatinem/rust-cache@v1.4.0
+      uses: Swatinem/rust-cache@v2.2.1
       with:
         sharedKey: full-build-cache
     # https://github.com/actions-rs/tarpaulin/issues/15
@@ -110,7 +110,7 @@ jobs:
           profile: minimal
           components: rustfmt
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1.4.0
+        uses: Swatinem/rust-cache@v2.2.1
         with:
           sharedKey: full-build-cache
       - name: Check formatting/code style
@@ -135,7 +135,7 @@ jobs:
           profile: minimal
           components: clippy
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1.4.0
+        uses: Swatinem/rust-cache@v2.2.1
         with:
           sharedKey: full-build-cache
       - name: clippy
